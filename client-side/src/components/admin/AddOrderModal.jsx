@@ -7,6 +7,7 @@ import TextInput from "../common/TextInput";
 import Button from "../../components/common/Button";
 import { getInformationData } from "../../authentication/Authentication";
 import { TailSpin } from "react-loader-spinner";
+import { showToast } from "../../utils/alertHelper";
 
 const AddOrderModal = ({ handleClose = () => {}, onCreateOrder }) => {
   const [studentOptions, setStudentOptions] = useState([]);
@@ -160,17 +161,22 @@ const AddOrderModal = ({ handleClose = () => {}, onCreateOrder }) => {
       tempErrors.quantity = "Quantity must be greater than 0.";
     if (item.selectedVariations.length > 0 && variation.length === 0)
       tempErrors.variation = "Variation is required.";
-    if (item.selectedSizes.length > 0 && size.length === 0)
+    
+    const hasSizes = item.selectedSizes && Object.keys(item.selectedSizes).length > 0;
+    if (hasSizes && !size) {
       tempErrors.size = "Size is required.";
+    }
 
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0; // Returns true if no errors
   };
 
-  const createOrderHandler = () => {
-    if (!validateForm()) return;
+  const createOrderHandler = async () => {
+    try {
+      if (!validateForm()) return;
 
-    setIsLoading(true);
+      setIsLoading(true);
+      console.log('loading')
 
     const items = {
       product_id: item._id,
@@ -201,7 +207,13 @@ const AddOrderModal = ({ handleClose = () => {}, onCreateOrder }) => {
       order_status: "Pending",
     };
 
-    onCreateOrder(formData);
+      await onCreateOrder(formData);
+    } catch(err) {
+      // pass
+    } finally {
+      setIsLoading(false)
+      console.log("not loading")
+    }
   };
 
   return (
@@ -253,6 +265,7 @@ const AddOrderModal = ({ handleClose = () => {}, onCreateOrder }) => {
           type="number"
           value={amount}
           placeholder="Price"
+          readOnly
         />
 
         <TextInput
@@ -325,6 +338,7 @@ const AddOrderModal = ({ handleClose = () => {}, onCreateOrder }) => {
           size="full"
           onClick={createOrderHandler}
           disabled={isLoading || !student || !item || quantity <= 0}
+          title={(!student || !item || quantity <= 0) && "Add details before submitting."}
           className={`${
             isLoading || !student || !item || quantity <= 0
               ? "bg-gray-400 cursor-not-allowed"
